@@ -62,6 +62,7 @@ UBYTE emote_timer;
 
 UBYTE allocated_sprite_tiles;
 UBYTE allocated_hardware_sprites;
+FASTUBYTE tmp_iterator_offset; 
 
 static void deactivate_actor_impl(actor_t *actor);
 
@@ -71,7 +72,7 @@ void actors_init(void) BANKED {
     player_iframes          = 0;
     player_collision_actor  = NULL;
     emote_actor             = NULL;
-
+    tmp_iterator_offset     = 0;
     memset(actors, 0, sizeof(actors));
 }
 
@@ -81,11 +82,12 @@ void player_init(void) BANKED {
     SET_FLAG(PLAYER.flags, ACTOR_FLAG_COLLISION);
 }
 
+
 void actors_update(void) BANKED {
     actor_t *actor;
     static uint8_t screen_tile16_x, screen_tile16_y, screen_tile16_x_end, screen_tile16_y_end;
     static uint8_t actor_tile16_x, actor_tile16_y;
-    static uint8_t tmp_iterator; 
+    static FASTUBYTE tmp_iterator; 
     static FASTUBYTE actor_flags;
 
     // Convert scroll pos to 16px tile coordinates
@@ -97,7 +99,7 @@ void actors_update(void) BANKED {
     screen_tile16_y = PX_TO_TILE16(draw_scroll_y) + TILE16_OFFSET;
     screen_tile16_y_end = screen_tile16_y + ACTOR_BOUNDS_TILE16 + SCREEN_TILE16_H;
 
-    tmp_iterator = game_time;
+    tmp_iterator = game_time + tmp_iterator_offset;
 
     actor = actors_active_tail;
     while (actor) {
@@ -235,6 +237,7 @@ void actors_render(void) NONBANKED {
 	    actor->prev->next = 0;
 	    actors_active_tail = actor->prev;
 	    actor->prev = 0;
+        tmp_iterator_offset++;
 	}
 
     SWITCH_ROM(_save);
@@ -289,7 +292,7 @@ static void activate_actor_impl(actor_t *actor) {
     if (CHK_FLAG(actor->flags, ACTOR_FLAG_ACTIVE | ACTOR_FLAG_DISABLED)) return;
 
     // Check if on screen before activating to avoid flash of offscreen actors
-    if (actor != &PLAYER && !CHK_FLAG(actor->flags, ACTOR_FLAG_PINNED) && !CHK_FLAG(actor->flags, ACTOR_FLAG_PERSISTENT)) {
+    if (!CHK_FLAG(actor->flags, ACTOR_FLAG_PINNED)) {
         UBYTE actor_tile16_x = SUBPX_TO_TILE16(actor->pos.x) + ACTOR_BOUNDS_TILE16_HALF + TILE16_OFFSET;
         UBYTE actor_tile16_y = SUBPX_TO_TILE16(actor->pos.y) + ACTOR_BOUNDS_TILE16_HALF + TILE16_OFFSET;
         UBYTE screen_tile16_x = PX_TO_TILE16(draw_scroll_x) + TILE16_OFFSET;
@@ -306,7 +309,11 @@ static void activate_actor_impl(actor_t *actor) {
             // Actor top edge > screen bottom edge
             (actor_tile16_y > screen_tile16_y_end)
         ) {
-            return;
+            if (actor == &PLAYER || CHK_FLAG(actor->flags, ACTOR_FLAG_PERSISTENT)) {
+                SET_FLAG(actor->flags, ACTOR_FLAG_DISABLED);
+            } else {
+                return;
+            } 
         }
     }
 
@@ -325,22 +332,21 @@ void activate_actor(actor_t *actor) BANKED {
     activate_actor_impl(actor);
 }
 
+
 void activate_actors_in_row(UBYTE x, UBYTE y) BANKED {
     actor_t *actor = actors_inactive_head;
     UBYTE x_end = x + SCREEN_TILE_REFRES_W;
 
     while (actor) {
+        actor_t *next = actor->next;
         UBYTE ty = SUBPX_TO_TILE(actor->pos.y);
         if (ty == y) {
             UBYTE tx = SUBPX_TO_TILE(actor->pos.x);
             if ((tx >= x) && (tx < x_end)) {
-                actor_t * next = actor->next;
                 activate_actor_impl(actor);
-                actor = next;
-                continue;
             }
         }
-        actor = actor->next;
+        actor = next;
     }
 }
 
@@ -349,17 +355,27 @@ void activate_actors_in_col(UBYTE x, UBYTE y) BANKED {
     UBYTE y_end = y + SCREEN_TILE_REFRES_H;
 
     while (actor) {
+        actor_t *next = actor->next;
         UBYTE tx = SUBPX_TO_TILE(actor->pos.x);
         if (tx == x) {
             UBYTE ty = SUBPX_TO_TILE(actor->pos.y);
             if ((ty >= y) && (ty < y_end)) {
-                actor_t * next = actor->next;
                 activate_actor_impl(actor);
-                actor = next;
-                continue;
             }
         }
-        actor = actor->next;
+        actor = next;
+    }
+}
+
+void activate_persistent_actors(void) BANKED {
+    actor_t *actor = actors_inactive_head;
+
+    while (actor) {
+        actor_t *next = actor->next;
+        if (CHK_FLAG(actor->flags, ACTOR_FLAG_PERSISTENT | ACTOR_FLAG_PINNED)) {
+            activate_actor_impl(actor);
+        }
+        actor = next;
     }
 }
 
