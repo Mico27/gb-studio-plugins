@@ -1,0 +1,9 @@
+{
+  "type": "eventsPlugin",
+  "name": "Flash Dialogue",
+  "author": "Zone Booth",
+  "license": "MIT",
+  "description": "Displays Dialogue, waits some seconds, then closes it. Dialog is non-modal, so player can still move.",
+  "version": "1.0.0",
+  "gbsVersion": ">=4.3.0"
+}
