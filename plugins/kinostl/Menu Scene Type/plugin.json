@@ -1,0 +1,10 @@
+{
+  "type": "enginePlugin",
+  "name": "Menu Scene Type",
+  "author": "Zone Booth",
+  "url": "https://github.com/kinostl/GBS-Plugin---Menu-With-States/blob/main/Menu%20Scene%20Type/README.md",
+  "license": "MIT",
+  "description": "Adds a new scene type for turning a Scene into a Menu, along with events to make use of the new scene type.",
+  "version": "1.0.0",
+  "gbsVersion": ">=4.3.0"
+}
