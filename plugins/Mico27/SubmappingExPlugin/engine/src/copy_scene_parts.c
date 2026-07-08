@@ -225,6 +225,16 @@ void copy_background_submap_to_tileset(SCRIPT_CTX * THIS) OLDCALL BANKED {
     }
 }
 
+void vm_get_background_tile(SCRIPT_CTX * THIS) OLDCALL BANKED {
+    UBYTE x = ((*(uint8_t *) VM_REF_TO_PTR(FN_ARG0)));
+    UBYTE y = ((*(uint8_t *) VM_REF_TO_PTR(FN_ARG1)));
+    int16_t idx = *(int16_t*)VM_REF_TO_PTR(FN_ARG2);
+    int16_t * A;
+    if (idx < 0) A = THIS->stack_ptr + idx - 3; else A = script_memory + idx;
+    *A = ReadBankedUBYTE(image_ptr + (uint16_t)((y * (uint16_t)image_tile_width) + x), image_bank);
+
+}
+
 void vm_replace_background_tile(SCRIPT_CTX * THIS) OLDCALL BANKED {
     set_bkg_tile_xy(((*(uint8_t *) VM_REF_TO_PTR(FN_ARG0)) & 31), ((*(uint8_t *) VM_REF_TO_PTR(FN_ARG1)) & 31), (*(uint8_t *) VM_REF_TO_PTR(FN_ARG2)));
 }
@@ -232,3 +242,40 @@ void vm_replace_background_tile(SCRIPT_CTX * THIS) OLDCALL BANKED {
 void vm_replace_overlay_tile(SCRIPT_CTX * THIS) OLDCALL BANKED {
     set_win_tile_xy(((*(uint8_t *) VM_REF_TO_PTR(FN_ARG0)) & 31), ((*(uint8_t *) VM_REF_TO_PTR(FN_ARG1)) & 31), (*(uint8_t *) VM_REF_TO_PTR(FN_ARG2)));
 }
+
+#ifdef CGB
+    
+void vm_get_background_attribute_tile(SCRIPT_CTX * THIS) OLDCALL BANKED {
+    if (_is_CGB) {
+        UBYTE x = *(uint8_t*)VM_REF_TO_PTR(FN_ARG0);
+        UBYTE y = *(uint8_t*)VM_REF_TO_PTR(FN_ARG1);
+        int16_t idx = *(int16_t*)VM_REF_TO_PTR(FN_ARG2);
+        int16_t * A;
+        if (idx < 0) A = THIS->stack_ptr + idx - 3; else A = script_memory + idx;
+        *A = ReadBankedUBYTE(image_attr_ptr + (uint16_t)((y * (uint16_t)image_tile_width) + x), image_attr_bank);
+    }
+}
+
+void vm_replace_background_attribute_tile(SCRIPT_CTX * THIS) OLDCALL BANKED {
+    if (_is_CGB) {
+        UBYTE x = ((*(uint8_t *) VM_REF_TO_PTR(FN_ARG0)));
+        UBYTE y = ((*(uint8_t *) VM_REF_TO_PTR(FN_ARG1)));
+        UBYTE new_attr = (*(uint8_t *) VM_REF_TO_PTR(FN_ARG2));
+        VBK_REG = 1;
+        set_bkg_tile_xy((x & 31), (y & 31), new_attr);
+        VBK_REG = 0;
+    }
+}
+
+void vm_replace_overlay_attribute_tile(SCRIPT_CTX * THIS) OLDCALL BANKED {
+    if (_is_CGB) {
+        UBYTE x = ((*(uint8_t *) VM_REF_TO_PTR(FN_ARG0)));
+        UBYTE y = ((*(uint8_t *) VM_REF_TO_PTR(FN_ARG1)));
+        UBYTE new_attr = (*(uint8_t *) VM_REF_TO_PTR(FN_ARG2));
+        VBK_REG = 1;
+        set_win_tile_xy((x & 31), (y & 31), new_attr);
+        VBK_REG = 0;
+    }
+}
+
+#endif
